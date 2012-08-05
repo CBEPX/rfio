@@ -1,0 +1,33 @@
+
+loop(){
+ iscsiadm -m node -l
+ fio fio.ini|grep -Po "(read|write).+(iops=\d+)"
+ iscsiadm -m session -u
+}
+
+sum(){
+   echo $((`echo $*|tr ' ' +`))
+}
+
+I=9
+R=()
+W=()
+for a in `seq 1 $I`;
+do
+  v=`loop`
+  tmp=( `echo $v| grep -Po 'iops=\d+'` )
+  W+=( `echo ${tmp[0]}|grep -Po '\d+'` )
+  R+=( `echo ${tmp[1]}|grep -Po '\d+'` )
+done
+
+R=( `echo ${R[@]}|tr ' ' '\n'|sort -n` )
+W=( `echo ${W[@]}|tr ' ' '\n'|sort -n` )
+
+echo "READ:"
+echo "r <- c(" `echo ${R[@]} |tr ' ' ,` ")"
+echo median=${R[$(($I/2))]}, avg=$((`sum ${R[@]}`/$I)),  min=${R[0]} max=${R[$(($I-1))]}
+echo "WRITE":
+echo "w <- c(" `echo ${W[@]} |tr ' ' ,` ")"
+echo median=${W[$(($I/2))]}, avg=$((`sum ${W[@]}`/$I)),  min=${W[0]} max=${W[$(($I-1))]}
+echo -e "\n"
+
